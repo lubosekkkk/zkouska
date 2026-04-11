@@ -5,7 +5,7 @@ import re
 app = Flask(__name__)
 
 # SEM VLOŽ ADRESU STRÁNKY, KDE BĚŽÍ PŘEHRÁVAČ V PROHLÍŽEČI
-SOURCE_URL = "https://adresa-webu-se-streamem.com/kanal1"
+SOURCE_URL = "https://strumyk.cfd/e/gitshop/oneplaysport1.php"
 
 @app.route('/')
 def home():
