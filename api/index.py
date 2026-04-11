@@ -11,7 +11,6 @@ CHANNELS = {
     "oneplay2": ["ONEPLAY SPORT 2", "https://strumyk.cfd/e/gitshop/oneplaysport2.php"],
     "oneplay3": ["ONEPLAY SPORT 3", "https://strumyk.cfd/e/gitshop/oneplaysport3.php"],
     "oneplay4": ["ONEPLAY SPORT 4", "https://strumyk.cfd/e/gitshop/oneplaysport4.php"],
-    "oneplay5": ["ONEPLAY SPORT 5", "https://strumyk.cfd/e/gitshop/oneplaysport5.php"],
     "nova1": ["NOVA SPORT 1", "https://strumyk.cfd/e/gitshop/novasport1.php"],
     "nova2": ["NOVA SPORT 2", "https://strumyk.cfd/e/gitshop/novasport2.php"],
     "nova3": ["NOVA SPORT 3", "https://strumyk.cfd/e/gitshop/novasport3.php"],
