@@ -17,7 +17,8 @@ CHANNELS = {
     "nova4": ["NOVA SPORT 4", "https://strumyk.cfd/e/gitshop/novasport4.php"],
     "nova5": ["NOVA SPORT 5", "https://strumyk.cfd/e/gitshop/novasport5.php"],
     "nova6": ["NOVA SPORT 6", "https://strumyk.cfd/e/gitshop/novasport6.php"],
-    "ctsport": ["CT SPORT", "https://dlstreams.top/stream/stream-1033.php"]
+    "ctsport": ["CT SPORT", "https://dlstreams.top/stream/stream-1033.php"],
+    "sport1": ["SPORT 1", "https://planetary.lovetier.bz/SPORT1CZ/tracks-v1/mono.m3u8?token=U1BPUlQxQ1p8bm9fY2hlY2tfaXB8MTc3NTkyOTgxMw%3D%3D.2ce41f6b12f939afaac519b873ee5520d4c3f84848c49834ab8c27932060c397"]
 }
 
 @app.route('/')
