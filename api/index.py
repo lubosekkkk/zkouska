@@ -4,8 +4,7 @@ import re
 
 app = Flask(__name__)
 
-# --- SEZNAM KANÁLŮ (BEZ LOG) ---
-# Formát: "id": ["Název v playlistu", "URL stránky nebo m3u8"]
+# --- SEZNAM KANÁLŮ ---
 CHANNELS = {
     "oneplay1": ["ONEPLAY SPORT 1", "https://strumyk.cfd/e/gitshop/oneplaysport1.php"],
     "oneplay2": ["ONEPLAY SPORT 2", "https://strumyk.cfd/e/gitshop/oneplaysport2.php"],
@@ -31,14 +30,10 @@ def home():
 def get_playlist():
     import flask
     base_url = flask.request.host_url.rstrip('/')
-    
     m3u = "#EXTM3U\n"
     for cid, info in CHANNELS.items():
-        name = info[0]
-        # Jen název bez loga
-        m3u += f'#EXTINF:-1, {name}\n'
+        m3u += f'#EXTINF:-1, {info[0]}\n'
         m3u += f'{base_url}/play/{cid}\n'
-    
     return Response(m3u, mimetype='text/plain')
 
 @app.route('/play/<channel_id>')
@@ -54,22 +49,39 @@ def play_channel(channel_id):
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': source_url
+        'Referer': source_url,
+        'Origin': source_url
     }
 
     try:
-        # 1. Načteme webovou stránku
+        # 1. Pokus: Načtení hlavní stránky
         response = requests.get(source_url, headers=headers, timeout=10)
         html = response.text
         
-        # 2. Hledáme m3u8 odkaz s tokenem
-        match = re.search(r'https?://[^\s"\'<>]+?\.m3u8\?[^\s"\'<>]+', html)
+        # Hledací vzorec pro m3u8 (agresivnější)
+        m3u8_regex = r'https?://[^\s"\'<>]+?\.m3u8[^\s"\'<>]*'
         
+        match = re.search(m3u8_regex, html)
+        
+        # 2. Pokus: Pokud m3u8 není na hlavní stránce, hledáme iframe
+        if not match:
+            # Hledáme src u iframu
+            iframe_match = re.search(r'<iframe [^>]*src="([^"]+)"', html)
+            if iframe_match:
+                iframe_url = iframe_match.group(1)
+                if iframe_url.startswith('//'):
+                    iframe_url = 'https:' + iframe_url
+                
+                # Jdeme do iframu (pokud je to jiná doména, změníme Referer)
+                headers['Referer'] = iframe_url
+                response = requests.get(iframe_url, headers=headers, timeout=10)
+                match = re.search(m3u8_regex, response.text)
+
         if match:
-            # 3. Přesměrování na čerstvý stream
+            # Přesměrování na nalezený link
             return redirect(match.group(0), code=302)
         else:
-            return f"M3U8 link pro {channel_id} nebyl nalezen.", 404
+            return f"M3U8 link pro {channel_id} nebyl nalezen ani v iframe.", 404
             
     except Exception as e:
         return f"Chyba: {str(e)}", 500
