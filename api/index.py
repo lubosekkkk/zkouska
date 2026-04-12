@@ -14,6 +14,7 @@ CHANNELS = {
     "nova1": ["NOVA SPORT 1", "https://strumyk.cfd/e/gitshop/novasport1.php"],
     "nova2": ["NOVA SPORT 2", "https://strumyk.cfd/e/gitshop/novasport2.php"],
     "nova3": ["NOVA SPORT 3", "https://strumyk.cfd/e/gitshop/novasport3.php"],
+    "bnova3": ["NOVA SPORT 3 (2)", "https://sites.google.com/view/parecek18/ns6"]
     "nova4": ["NOVA SPORT 4", "https://strumyk.cfd/e/gitshop/novasport4.php"],
     "nova5": ["NOVA SPORT 5", "https://strumyk.cfd/e/gitshop/novasport5.php"],
     "nova6": ["NOVA SPORT 6", "https://strumyk.cfd/e/gitshop/novasport6.php"],
