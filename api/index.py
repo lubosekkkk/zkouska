@@ -18,7 +18,8 @@ CHANNELS = {
     "nova5": ["NOVA SPORT 5", "https://strumyk.cfd/e/gitshop/novasport5.php"],
     "nova6": ["NOVA SPORT 6", "https://strumyk.cfd/e/gitshop/novasport6.php"],
     "ctsport": ["CT SPORT", "https://dlstreams.top/stream/stream-1033.php"],
-    "sport1": ["SPORT 1", "https://sportik.lol/e/vip/CZ/sport1sk.php"]
+    "sport1": ["SPORT 1", "https://sportik.lol/e/vip/CZ/sport1sk.php"],
+    "sport2": ["SPORT 2", "https://strumyk.cfd/e/vip/CZ/sport2.php"]
 }
 
 @app.route('/')
