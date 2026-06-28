@@ -1,13 +1,12 @@
 from flask import Flask, redirect, Response, request
-import re
 import requests
+import re
 from urllib.parse import urlparse
-from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
 # ----------------------------
-# 📺 KANÁLY (tvůj seznam)
+# 📺 KANÁLY
 # ----------------------------
 CHANNELS = {
     "oneplay1": ["ONEPLAY SPORT 1", "https://strumyk.cfd/e/gitshop/oneplaysport1.php"],
@@ -33,11 +32,18 @@ HEADERS = {
 }
 
 # ----------------------------
-# 🔎 STATIC DETECTOR
+# 🔎 STREAM DETECTION (SAFE VERSION)
 # ----------------------------
 
 def extract_urls(html):
     return re.findall(r'https?://[^\s"\'<>]+', html)
+
+
+def is_direct_m3u8(url: str) -> bool:
+    try:
+        return ".m3u8" in urlparse(url).path
+    except:
+        return False
 
 
 def score(url, ctx=""):
@@ -53,13 +59,13 @@ def score(url, ctx=""):
     if "jwt=" in u or "token=" in u:
         s += 20
 
-    if any(x in u for x in ["stream", "hls", "video", "cdn"]):
+    if any(x in u for x in ["stream", "hls", "cdn", "video"]):
         s += 10
 
     if any(x in u for x in ["ads", "google", "doubleclick"]):
         s -= 50
 
-    if any(x in c for x in ["video", "source", "m3u8", "hls"]):
+    if any(x in c for x in ["video", "source", "hls", "m3u8"]):
         s += 10
 
     return s
@@ -73,7 +79,7 @@ def static_detect(html):
 
     for url in urls:
         idx = html.find(url)
-        ctx = html[max(0, idx-120):idx+120]
+        ctx = html[max(0, idx - 120): idx + 120]
 
         s = score(url, ctx)
 
@@ -84,56 +90,21 @@ def static_detect(html):
     return best, best_score
 
 
-# ----------------------------
-# 🧠 PLAYWRIGHT DETECTOR (JS + network sniff)
-# ----------------------------
-
-def playwright_detect(url):
-    found = []
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-
-        def on_response(response):
-            try:
-                if ".m3u8" in response.url or ".mpd" in response.url:
-                    found.append(response.url)
-            except:
-                pass
-
-        page.on("response", on_response)
-
-        try:
-            page.goto(url, timeout=20000)
-            page.wait_for_timeout(5000)
-        except:
-            pass
-
-        browser.close()
-
-    return found
-
-
-# ----------------------------
-# 🚀 MASTER DETECTOR
-# ----------------------------
-
 def detect_stream(url):
     try:
-        r = requests.get(url, headers=HEADERS, timeout=10)
+        r = requests.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
 
-        # 1) static scan
-        best, score = static_detect(r.text)
+        # 1) STATIC ANALYSIS
+        best, sc = static_detect(r.text)
 
-        if best and score > 50:
+        if best and sc > 50:
             return best
 
-        # 2) JS sniffing
-        streams = playwright_detect(url)
-
-        if streams:
-            return streams[0]
+        # 2) DIRECT SCAN fallback
+        urls = extract_urls(r.text)
+        for u in urls:
+            if ".m3u8" in u:
+                return u
 
         return None
 
@@ -147,7 +118,7 @@ def detect_stream(url):
 
 @app.route("/")
 def home():
-    return "ULTRA IPTV Stream Detector running"
+    return "IPTV Stream Detector running (Vercel SAFE MODE)"
 
 
 @app.route("/playlist.m3u")
@@ -169,11 +140,11 @@ def play(cid):
 
     url = CHANNELS[cid][1]
 
-    # direct m3u8
-    if ".m3u8" in url:
+    # 1) přímý m3u8 (včetně jwt)
+    if is_direct_m3u8(url):
         return redirect(url, 302)
 
-    # ultra detection
+    # 2) detekce
     stream = detect_stream(url)
 
     if stream:
