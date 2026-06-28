@@ -1,10 +1,11 @@
-from flask import Flask, redirect, Response
+from flask import Flask, redirect, Response, request
 import requests
 import re
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
-# --- SEZNAM KANÁLŮ ---
+# --- KANÁLY ---
 CHANNELS = {
     "oneplay1": ["ONEPLAY SPORT 1", "https://strumyk.cfd/e/gitshop/oneplaysport1.php"],
     "oneplay2": ["ONEPLAY SPORT 2", "https://strumyk.cfd/e/gitshop/oneplaysport2.php"],
@@ -12,7 +13,7 @@ CHANNELS = {
     "oneplay4": ["ONEPLAY SPORT 4", "https://strumyk.cfd/e/gitshop/oneplaysport4.php"],
     "nova1": ["NOVA SPORT 1", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns1"],
     "nova2": ["NOVA SPORT 2", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns2"],
-    "nova3": ["NOVA SPORT 3", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns3?authuser=0"],
+    "nova3": ["NOVA SPORT 3", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns3"],
     "nova4": ["NOVA SPORT 4", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns4"],
     "nova5": ["NOVA SPORT 5", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns5"],
     "nova6": ["NOVA SPORT 6", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns6"],
@@ -21,69 +22,78 @@ CHANNELS = {
     "sport2": ["SPORT 2", "https://abcsport.top/sport2cz.php"]
 }
 
-@app.route('/')
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+}
+
+# --- HELPERS ---
+
+def is_m3u8(url: str) -> bool:
+    """Zkontroluje, jestli URL je m3u8 (i s ?jwt=...)"""
+    try:
+        path = urlparse(url).path
+        return path.endswith(".m3u8")
+    except:
+        return False
+
+
+def extract_m3u8(text: str):
+    """Najde první m3u8 v textu"""
+    pattern = r'https?://[^\s"\'<>]+\.m3u8[^\s"\'<>]*'
+    return re.search(pattern, text)
+
+
+def fetch(url: str):
+    """Stažení stránky"""
+    return requests.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+
+
+# --- ROUTES ---
+
+@app.route("/")
 def home():
-    return "Multi-Stream Redirector běží! Playlist je na /playlist.m3u"
+    return "Multi Stream API běží. Playlist: /playlist.m3u"
 
-@app.route('/playlist.m3u')
-def get_playlist():
-    import flask
-    base_url = flask.request.host_url.rstrip('/')
+
+@app.route("/playlist.m3u")
+def playlist():
+    base = request.host_url.rstrip("/")
     m3u = "#EXTM3U\n"
-    for cid, info in CHANNELS.items():
-        m3u += f'#EXTINF:-1, {info[0]}\n'
-        m3u += f'{base_url}/play/{cid}\n'
-    return Response(m3u, mimetype='text/plain')
 
-@app.route('/play/<channel_id>')
-def play_channel(channel_id):
+    for cid, info in CHANNELS.items():
+        m3u += f"#EXTINF:-1,{info[0]}\n"
+        m3u += f"{base}/play/{cid}\n"
+
+    return Response(m3u, mimetype="text/plain")
+
+
+@app.route("/play/<channel_id>")
+def play(channel_id):
     if channel_id not in CHANNELS:
         return "Kanál neexistuje", 404
-    
+
     source_url = CHANNELS[channel_id][1]
 
-    # Pokud je to přímý m3u8 link, rovnou přesměrujeme
-    if source_url.endswith('.m3u8'):
-         return redirect(source_url, code=302)
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': source_url,
-        'Origin': source_url
-    }
-
     try:
-        # 1. Pokus: Načtení hlavní stránky
-        response = requests.get(source_url, headers=headers, timeout=10)
-        html = response.text
-        
-        # Hledací vzorec pro m3u8 (agresivnější)
-        m3u8_regex = r'https?://[^\s"\'<>]+?\.m3u8[^\s"\'<>]*'
-        
-        match = re.search(m3u8_regex, html)
-        
-        # 2. Pokus: Pokud m3u8 není na hlavní stránce, hledáme iframe
-        if not match:
-            # Hledáme src u iframu
-            iframe_match = re.search(r'<iframe [^>]*src="([^"]+)"', html)
-            if iframe_match:
-                iframe_url = iframe_match.group(1)
-                if iframe_url.startswith('//'):
-                    iframe_url = 'https:' + iframe_url
-                
-                # Jdeme do iframu (pokud je to jiná doména, změníme Referer)
-                headers['Referer'] = iframe_url
-                response = requests.get(iframe_url, headers=headers, timeout=10)
-                match = re.search(m3u8_regex, response.text)
+        # 1) pokud je to přímo m3u8 (včetně jwt)
+        if is_m3u8(source_url):
+            return redirect(source_url, 302)
+
+        # 2) načti stránku
+        r = fetch(source_url)
+
+        # 3) zkus najít m3u8
+        match = extract_m3u8(r.text)
 
         if match:
-            # Přesměrování na nalezený link
-            return redirect(match.group(0), code=302)
-        else:
-            return f"M3U8 link pro {channel_id} nebyl nalezen ani v iframe.", 404
-            
+            return redirect(match.group(0), 302)
+
+        return "M3U8 nenalezeno", 404
+
     except Exception as e:
         return f"Chyba: {str(e)}", 500
 
+
+# --- VERCEL ENTRYPOINT ---
 def handler(request):
     return app
