@@ -33,9 +33,26 @@ CHANNELS = {
 # =========================
 # 🟢 HOME
 # =========================
-@app.route("/")
-def home():
-    return "IPTV system running"
+@app.route("/find")
+def find():
+    url = request.args.get("url")
+
+    if not url:
+        return jsonify({"error": "missing url"}), 400
+
+    try:
+        stream = detect_html(url)
+        if stream:
+            return jsonify({"stream": stream, "source": "html"})
+
+        streams = detect_playwright(url)
+        if streams:
+            return jsonify({"stream": streams[0], "source": "playwright"})
+
+        return jsonify({"stream": None, "debug": "no m3u8 found"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # =========================
 # 🟢 PLAYLIST (VLC)
