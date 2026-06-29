@@ -23,9 +23,9 @@ CHANNELS = {
     "nova4": ["NOVA SPORT 4", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns4"],
     "nova5": ["NOVA SPORT 5", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns5"],
     "nova6": ["NOVA SPORT 6", "https://sites.google.com/view/jablecnatasticka23/kanaly/ns6"],
-
+    "sportytv": ["SPORTYTV", "https://strumyk.st/e/vip/CZ/sportytv.php"],
     "ctsport": ["CT SPORT", "https://dlstreams.top/stream/stream-1033.php"],
-
+    "novaaction": ["NOVA ACTION", "https://strumyk.st/e/vip/CZ/nova_action.php"],
     "sport1": ["SPORT 1", "https://abcsport.top/sport1cz.php"],
     "sport2": ["SPORT 2", "https://abcsport.top/sport2cz.php"],
 }
